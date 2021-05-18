@@ -1,0 +1,88 @@
+
+void ACPerror(){
+	FILE *DataACP; 
+	int Charact[POINT] = {0};
+
+	int temp1 = 0;
+	int temp0 = POINT - 1;
+	int m = 1;
+	double val = 2.56;
+
+	double error, LSBerror, ZEROerror, SCALEerror, INTerror = 0, temp;
+	DataACP = fopen ("adc.txt", "r"); 
+	
+	for(int t=0; t<POINT; t++) {
+ 		fscanf(DataACP, "%d\n", &Charact[t]);
+		if ((Charact[t] != 0)&&(m == 1)){
+			temp1 = t - 1;
+			m=0;
+		}
+		if (Charact[t] == 1023){
+			temp0 = t;
+			break;
+		} 
+	}
+	
+	double Charact1[temp0+1];
+	double Array[temp0+1]; 
+	double Array1[temp0+1];
+	for(int t=0; t<temp0+1; t++){
+		Charact1[t]=Charact[t];
+		Array[t]=t*2.56/temp0;
+		Array1[t]=t*2.56/temp0;
+	}
+	fclose (DataACP);
+	PlotXY (panelHandle, PANEL_GRAPH_3, Array, Charact1, temp0+1, VAL_DOUBLE, VAL_DOUBLE, VAL_FAT_LINE, VAL_SOLID_SQUARE, VAL_DOT, 1, VAL_YELLOW);
+	
+
+	//ZEROerror
+	ZEROerror = Charact1[temp1] - 2.56/1024/2;
+	error = ZEROerror*100;
+	LSBerror = ZEROerror*1024;
+	SetCtrlVal(PANEL, PANEL_NUMERIC_9,  error);
+	SetCtrlVal(PANEL, PANEL_NUMERIC_13,  LSBerror);
+	for(int t=0; t<temp0+1; t++) {
+		Charact1[t] = Charact1[t] - ZEROerror;
+	}
+	
+	//SCALEerror
+	SCALEerror = Charact[temp0]-1024;
+	error = SCALEerror/1024*100;
+	if (error < 0)
+		error = (-1)*error;
+	LSBerror = SCALEerror;
+	if (LSBerror < 0)
+		LSBerror = (-1)*LSBerror;
+	SetCtrlVal(PANEL, PANEL_NUMERIC_14,  error);
+	SetCtrlVal(PANEL, PANEL_NUMERIC_12,  LSBerror);
+	
+	//without SCALEerror and ZEROerror
+	for(int t=0; t<temp0+1; t++) {
+		Charact1[t] = Charact1[t] - ((double)t/(double)(temp0))*SCALEerror;
+	}
+	PlotXY(panelHandle, PANEL_GRAPH_7, Array, Charact1, temp0+1, VAL_DOUBLE, VAL_DOUBLE, VAL_THIN_LINE, VAL_SOLID_SQUARE, VAL_DOT, 1, VAL_GREEN);
+	
+	//INTerror
+	double Analog[temp0+1];
+	double Real[temp0+1];
+	for(int t = 0; t < temp0+1; t++)
+		Real[t] = (1024.0/(double)temp0)*t;
+		
+	PlotXY (panelHandle, PANEL_GRAPH_7, Array, Real, temp0+1, VAL_DOUBLE,  VAL_DOUBLE, VAL_THIN_LINE, VAL_SOLID_SQUARE, VAL_DOT, 1, VAL_WHITE); 
+	
+	for(int t = 0; t < temp0+1; t++){
+		if (t > temp1) {
+			Analog[t] = (Charact1[t] - Real[t]); 
+			INTerror = Analog[t]; 
+		}
+		else 
+			Analog[t] = 0;
+	}
+	
+    error = INTerror/1024*100;
+	LSBerror = INTerror;
+	SetCtrlVal(PANEL, PANEL_NUMERIC_15,  error);
+	SetCtrlVal(PANEL, PANEL_NUMERIC_11,  LSBerror);
+
+	PlotXY (panelHandle, PANEL_GRAPH_8, Array, Analog, temp0+1, VAL_DOUBLE, VAL_DOUBLE, VAL_THIN_LINE, VAL_SOLID_SQUARE, VAL_DOT, 1, VAL_RED);
+}
